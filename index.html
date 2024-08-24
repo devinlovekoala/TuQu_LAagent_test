@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>线性代数计算器</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .container {
+            max-width: 800px;
+        }
+        #animationContainer {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-5">
+        <h2 class="mb-4 text-center">线性代数计算器</h2>
+        <div class="card">
+            <div class="card-body">
+                <div class="mb-3">
+                    <label for="matrixInput" class="form-label">输入矩阵</label>
+                    <textarea class="form-control" id="matrixInput" rows="3" placeholder="请输入矩阵，例如: [[1, 2], [3, 4]]"></textarea>
+                </div>
+                <div class="d-grid gap-2 d-md-block">
+                    <button class="btn btn-primary" onclick="processMatrix('inverse_matrix')">逆矩阵</button>
+                    <button class="btn btn-secondary" onclick="processMatrix('trans_matrix')">转置矩阵</button>
+                    <button class="btn btn-info" onclick="processMatrix('num_matrix')">数乘</button>
+                    <button class="btn btn-warning" onclick="processMatrix('product_matrix')">矩阵乘法</button>
+                </div>
+                <div id="result" class="mt-3"></div>
+            </div>
+        </div>
+        <div id="animationContainer"></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function isValidMatrix(matrix) {
+    if (!Array.isArray(matrix) || matrix.length === 0) {
+        return false;
+    }
+    const rows = matrix.length;
+    const cols = matrix[0].length;
+    if (!Array.isArray(matrix[0]) || cols === 0) {
+        return false;
+    }
+    for (let i = 0; i < rows; i++) {
+        if (!Array.isArray(matrix[i]) || matrix[i].length !== cols) {
+            return false;
+        }
+        for (let j = 0; j < cols; j++) {
+            if (typeof matrix[i][j] !== 'number') {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+        async function processMatrix(operation) {
+    const input = document.getElementById('matrixInput').value;
+    let matrix;
+    try {
+        matrix = JSON.parse(input);
+    } catch (e) {
+        alert('输入格式不正确，请使用有效的JSON数组格式');
+        return;
+    }
+
+    if (!isValidMatrix(matrix)) {
+        alert('请输入合法的矩阵');
+        return;
+    }
+
+    document.getElementById('result').innerHTML = '<div class="spinner-border" role="status"><span class="visually-hidden">处理中...</span></div>';
+
+    const response = await fetch(`/api/process/${operation}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ matrix: matrix })
+    });
+
+            if (response.ok) {
+    const result = await response.json();
+    console.log('Received result:', result);
+    document.getElementById('result').innerHTML = `<div class="alert alert-success" role="alert">结果: ${JSON.stringify(result.result)}</div>`;
+    if (result.animation_url) {
+    document.getElementById('animationContainer').innerHTML = `<video controls class="w-100"><source src="${result.animation_url}" type="video/mp4"></video>`;
+}
+} else {
+    const errorData = await response.json();
+    console.error('Error data:', errorData);
+    document.getElementById('result').innerHTML = `<div class="alert alert-danger" role="alert">错误: ${errorData.detail}</div>`;
+}
+        }
+    </script>
+</body>
+</html>
